@@ -78,31 +78,37 @@
       font-size: 24px;
     }
 
-    /* Dimension toggle button */
+    /* Dimension toggle button — top right corner */
     #dimension-btn {
-      flex: 0 0 auto;
-      margin-left: auto;
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 1000;
       padding: 10px 20px;
       font-size: 14px;
       font-weight: 600;
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      background: #444;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       color: #fff;
       white-space: nowrap;
       transition: background 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
-    #dimension-btn:hover { background: #666; }
+    #dimension-btn:hover { background: rgba(50, 50, 50, 0.85); }
     #dimension-btn.active { background: #2563eb; }
   </style>
 </head>
 <body>
   <div id="embed3DSource"></div>
 
+  <button id="dimension-btn">Show Dimensions</button>
+
   <div id="product-bar">
     <div id="products"></div>
-    <button id="dimension-btn">Show Dimensions</button>
   </div>
 
   <script type="module">
