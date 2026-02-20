@@ -171,6 +171,9 @@
         card.addEventListener('click', () => {
           if (!api || product.id === currentProductId) return;
           api.sendCommandToMetabox(new SetProduct(product.id));
+          if (dimensionsVisible) {
+            api.sendCommandToMetabox(new ShowMeasurement());
+          }
         });
 
         productsContainer.appendChild(card);
