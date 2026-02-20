@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dimension Viewer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+
+    #embed3DSource {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+    }
+
+    #dimension-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-family: system-ui, sans-serif;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      background: #333;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      transition: background 0.2s;
+    }
+    #dimension-btn:hover { background: #555; }
+    #dimension-btn.active { background: #2563eb; }
+  </style>
+</head>
+<body>
+  <div id="embed3DSource"></div>
+  <button id="dimension-btn">Show Dimensions</button>
+
+  <script type="module">
+    import {
+      integrateMetabox,
+      ShowMeasurement,
+      HideMeasurement,
+      ShowEmbeddedMenu,
+      ShowOverlayInterface,
+    } from 'https://cdn.jsdelivr.net/npm/@3dsource/metabox-front-api@latest/+esm';
+
+    let api = null;
+    let dimensionsVisible = false;
+    const btn = document.getElementById('dimension-btn');
+
+    integrateMetabox(
+      '51dc3853-7c0e-4b34-a4e6-57497cba99c7',
+      'embed3DSource',
+      (communicator) => {
+        api = communicator;
+        api.sendCommandToMetabox(new ShowEmbeddedMenu(false));
+        api.sendCommandToMetabox(new ShowOverlayInterface(false));
+      },
+      { standalone: true }
+    );
+
+    btn.addEventListener('click', () => {
+      if (!api) return;
+      dimensionsVisible = !dimensionsVisible;
+      if (dimensionsVisible) {
+        api.sendCommandToMetabox(new ShowMeasurement());
+        btn.textContent = 'Hide Dimensions';
+        btn.classList.add('active');
+      } else {
+        api.sendCommandToMetabox(new HideMeasurement());
+        btn.textContent = 'Show Dimensions';
+        btn.classList.remove('active');
+      }
+    });
+  </script>
+</body>
+</html>

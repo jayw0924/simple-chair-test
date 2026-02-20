@@ -1,0 +1,208 @@
+/* Global Styles */
+body {
+  font-family: Arial, sans-serif;
+  padding: 0;
+  width: inherit;
+  height: inherit;
+  min-height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background-color: #f9fafb;
+  scroll-behavior: smooth;
+  text-rendering: optimizespeed;
+}
+
+/* Better box-sizing across the app */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Main Container */
+.container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  background-color: white;
+  word-wrap: break-word;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+}
+
+.left-panel {
+  height: 100%;
+}
+
+/* Panel Styles: Both panels get 50% width by default */
+.left-panel,
+.right-panel {
+  flex: 0 0 50%;
+}
+
+/* Right Panel Extra Styles */
+.right-panel {
+  /*  max-height: 1000px; */
+
+  /* Adjusted to remove horizontal scroll */
+  overflow: auto;
+}
+
+/* Header Styles */
+.header {
+  text-align: center;
+}
+
+/* Product Image */
+.product-image {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: block;
+}
+
+/* Product Details */
+.product-details {
+  text-align: left;
+  margin-top: 20px;
+}
+
+/* Pricing Styles */
+.price {
+  font-size: 24px;
+  color: #333;
+}
+
+.sale-price {
+  color: red;
+  margin-left: 10px;
+}
+
+/* Options Sections */
+.seat-options,
+.frame-options,
+.metal-finish-options {
+  margin-top: 20px;
+}
+
+.option-label {
+  font-weight: bold;
+  word-wrap: break-word;
+  white-space: normal; /* Fixed invalid value */
+}
+
+.options {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Buttons (Original Style) */
+button {
+  padding: 10px 15px;
+  margin: 0 10px 5px 0;
+  border: 1px solid #ccc;
+  background-color: white;
+  cursor: pointer;
+  border-radius: 10px;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+button:hover {
+  background-color: #f5f5f5;
+}
+
+button:focus-visible {
+  outline: 2px solid #4c9ffe;
+  outline-offset: 2px;
+}
+
+/* Active Button Style */
+.options button.active {
+  border-color: black;
+  background-color: #000;
+  color: white;
+}
+
+/* Style Dropdowns like Buttons with a Custom Down Arrow */
+select {
+  max-width: 100%;
+  padding: 10px 15px;
+
+  /* Extra right padding to ensure text doesn't overlap with the arrow */
+  padding-right: 40px;
+  margin: 0 10px 5px 0;
+  border: 1px solid #ccc;
+  background-color: white;
+  cursor: pointer;
+  border-radius: 10px;
+
+  /* Remove default browser appearance */
+  appearance: none;
+
+  /* Add a down arrow as a background image using an inline SVG */
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23333' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+}
+
+/* Option styling inside dropdowns can remain default */
+select option {
+  padding: 10px;
+}
+
+/* Quantity Input */
+.quantity {
+  margin-top: 20px;
+}
+
+.quantity input {
+  width: 50px;
+  text-align: center;
+}
+
+/* Action buttons container */
+.add-to-cart {
+  margin-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Style action buttons inside the container */
+.add-to-cart button {
+  padding: 10px 15px;
+  border: 1px solid #000;
+  background-color: #000;
+  color: #fff;
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.add-to-cart button:hover {
+  background-color: #111;
+}
+
+.add-to-cart button:focus-visible {
+  outline: 2px solid #4c9ffe;
+  outline-offset: 2px;
+}
+
+/* Product Description */
+.product-description {
+  margin-top: 20px;
+  color: #555;
+  font-size: 10px;
+}
+
+/* Embedded 3D Source */
+#embed3DSource {
+  width: 100%;
+  height: 100%;
+  background-color: #e0e0e0; /* Placeholder background */
+}

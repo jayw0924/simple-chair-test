@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Metabox Configurator Demo</title>
+    <meta
+      name="description"
+      content="Interactive Metabox configurator demo with Vue 3: choose products, environments, materials, and export renders/PDF."
+    />
+    <link href="style.css" rel="stylesheet" />
+
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import {
+        GetCallToActionInformation,
+        GetPdf,
+        GetScreenshot,
+        integrateMetabox,
+        saveImage,
+        SetEnvironment,
+        SetEnvironmentMaterial,
+        SetProduct,
+        SetProductMaterial,
+      } from 'https://cdn.jsdelivr.net/npm/@3dsource/metabox-front-api@latest/+esm';
+      import { createApp } from 'vue';
+
+      class Shim {
+        state = null;
+        ecomConfigurator = null;
+        product = null;
+        products = null;
+        environments = null;
+        productSlots = null;
+        environmentSlots = null;
+        productMaterialsIds = null;
+        api = {};
+
+        ready(api) {
+          this.api = api;
+          this.addApiEventListeners();
+        }
+
+        addApiEventListeners() {
+          this.api.addEventListener('configuratorDataUpdated', (data) =>
+            this.updateConfiguratorData(data),
+          );
+          this.api.addEventListener('ecomConfiguratorDataUpdated', (data) => {
+            this.updateEcomConfiguratorData(data);
+          });
+          this.api.addEventListener('screenshotReady', (data) => {
+            saveImage(data, 'Render.png');
+          });
+        }
+
+        updateConfiguratorData(data) {
+          const {
+            productId,
+            configurator,
+            productMaterialsIds,
+            environmentId,
+            environmentMaterialsIds,
+          } = data;
+
+          this.productMaterialsIds = productMaterialsIds;
+          if (
+            !productId ||
+            !configurator ||
+            Object.keys(this.productMaterialsIds).length === 0
+          ) {
+            return;
+          }
+
+          this.state = data;
+          this.products =
+            configurator.products?.map((item) => item.product) || [];
+          this.environments =
+            configurator.environments?.map((item) => item.environment) || [];
+          this.product = this.products.find(
+            (product) => product.id === productId,
+          );
+          const environment = this.environments.find(
+            (env) => env.id === environmentId,
+          );
+          this.productSlots =
+            this.product?.slots.filter(
+              (slot) => slot.enabledMaterials.length > 0,
+            ) || [];
+          this.environmentSlots = environment?.slots.filter(
+            (slot) => slot.enabledMaterials.length > 0,
+          );
+        }
+        updateEcomConfiguratorData(data) {
+          this.ecomConfigurator = data;
+        }
+        sendProduct(productId) {
+          this.api.sendCommandToMetabox(new SetProduct(productId));
+        }
+        sendEnvironment(environmentId) {
+          this.api.sendCommandToMetabox(new SetEnvironment(environmentId));
+        }
+        sendProductMaterial(slotId, materialId) {
+          this.api.sendCommandToMetabox(
+            new SetProductMaterial(slotId, materialId),
+          );
+        }
+        sendEnvironmentMaterial(slotId, materialId) {
+          this.api.sendCommandToMetabox(
+            new SetEnvironmentMaterial(slotId, materialId),
+          );
+        }
+        getRender(size) {
+          this.api.sendCommandToMetabox(new GetScreenshot('image/png', size));
+        }
+        getPDF() {
+          this.api.sendCommandToMetabox(new GetPdf());
+        }
+        getCtaInformation() {
+          this.api.sendCommandToMetabox(new GetCallToActionInformation());
+        }
+      }
+
+      createApp({
+        data() {
+          return { shim: new Shim() };
+        },
+        mounted() {
+          // Assuming you have the `integrateMetabox` and other related functions already imported
+          integrateMetabox(
+            '624b6c49-3fc8-4c4d-8e6e-5221355afd68',
+            'embed3DSource',
+            (api) => {
+              this.shim.ready(api);
+            },
+            {
+              standalone: true,
+              introImage: 'https://metabox-api.3dsource.com/uploads/render/28f013cd-5ad4-43de-adc9-403ace1bf0a8/result.png',
+              loadingImage: 'https://metabox-api.3dsource.com/uploads/render/28f013cd-5ad4-43de-adc9-403ace1bf0a8/result.png',
+            },
+          );
+        },
+        methods: {},
+      }).mount('#app');
+    </script>
+  </head>
+  <body>
+    <noscript
+      ><strong
+        >This app requires JavaScript to run. Please enable JavaScript in your
+        browser.</strong
+      ></noscript
+    >
+    <div class="container" id="app">
+      <div class="left-panel">
+        <div id="embed3DSource">
+          <!-- Your iframe can be embedded here -->
+        </div>
+      </div>
+      <div class="right-panel" v-if="!shim.state">
+        <div class="header" role="status" aria-live="polite">
+          <h3>Loading...</h3>
+        </div>
+      </div>
+      <div class="right-panel" v-else>
+        <div class="add-to-cart">
+          <button type="button" @click="shim.getRender()">Take Render</button>
+          <button type="button" @click="shim.getRender({ x: 1024, y: 1024 })">
+            Take Render 1024×1024
+          </button>
+          <button type="button" @click="shim.getPDF()">Generate PDF</button>
+          <div v-if="shim.ecomConfigurator?.cta?.enabled">
+            <button type="button" @click="shim.getCtaInformation()">
+              {{ shim.ecomConfigurator?.cta?.label }}
+            </button>
+          </div>
+        </div>
+        <div class="header">
+          <h3>{{ shim.product?.title }}</h3>
+        </div>
+        <div class="product-selector">
+          <label for="product-select">Select Product:</label>
+          <select
+            @change="shim.sendProduct(shim.state.productId)"
+            id="product-select"
+            v-model="shim.state.productId"
+          >
+            <option
+              :key="product.id"
+              :value="product.id"
+              v-for="product in shim.products"
+            >
+              {{ product.title }}
+            </option>
+          </select>
+        </div>
+        <div class="product-details">
+          <div
+            class="options-section"
+            v-for="slot in shim.productSlots"
+            :key="slot.id"
+          >
+            <p class="option-label">{{ slot.label }}:</p>
+            <div class="options">
+              <button
+                type="button"
+                :key="material.id"
+                :class="{ active: shim.productMaterialsIds?.[shim.state.productId]?.[slot.id] === material.id }"
+                @click="shim.sendProductMaterial(slot.id, material.id)"
+                v-for="material in slot.enabledMaterials"
+              >
+                {{ material.title }}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div v-if="shim.environmentSlots">
+          <div class="product-selector">
+            <label for="env-select">Select Environment:</label>
+            <select
+              @change="shim.sendEnvironment(shim.state.environmentId)"
+              id="env-select"
+              v-model="shim.state.environmentId"
+            >
+              <option
+                :key="env.id"
+                :value="env.id"
+                v-for="env in shim.environments"
+              >
+                {{ env.title }}
+              </option>
+            </select>
+          </div>
+          <div class="product-details">
+            <div
+              class="options-section"
+              v-for="slot in shim.environmentSlots"
+              :key="slot.id"
+            >
+              <p class="option-label">{{ slot.label }}:</p>
+              <div class="options">
+                <button
+                  type="button"
+                  :key="material.id"
+                  :class="{ active: shim.state.environmentMaterialsIds?.[shim.state.environmentId]?.[slot.id] === material.id }"
+                  @click="shim.sendEnvironmentMaterial(slot.id, material.id)"
+                  v-for="material in slot.enabledMaterials"
+                >
+                  {{ material.title }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

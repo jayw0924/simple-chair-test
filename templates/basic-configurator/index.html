@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Metabox Basic Configurator</title>
+    <meta
+      name="description"
+      content="Interactive Metabox configurator demo with Vue 3: choose products, environments, materials, and export renders/PDF."
+    />
+
+    <style>
+      /* Critical Layout CSS - DO NOT REMOVE */
+
+      /* Box-sizing reset for predictable dimensions */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      /* Body reset - prevents scrollbars and margins */
+      body {
+        margin: 0;
+        overflow: hidden;
+        height: 100vh;
+        font-family: Arial, sans-serif;
+        background-color: #f9fafb;
+      }
+
+      /* Container with absolute positioning prevents layout shifts */
+      .container {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        overflow: hidden;
+        background-color: white;
+      }
+
+      /* Fixed 50/50 split - no grow/shrink prevents viewport jitter */
+      .left-panel,
+      .right-panel {
+        flex: 0 0 50%;
+      }
+
+      /* Left panel fills vertical space for 3D viewport */
+      .left-panel {
+        height: 100%;
+      }
+
+      /* Right panel scrolls independently of viewport */
+      .right-panel {
+        overflow: auto;
+        padding: 20px;
+      }
+
+      /* Embed container fills left panel completely */
+      #embed3DSource {
+        width: 100%;
+        height: 100%;
+        background-color: #e0e0e0; /* Loading placeholder */
+      }
+
+      /* UI Styling */
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .header h3 {
+        margin: 0;
+        font-size: 24px;
+        color: #333;
+      }
+
+      .product-selector {
+        margin-bottom: 20px;
+      }
+
+      .product-selector label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #333;
+      }
+
+      select {
+        width: 100%;
+        padding: 10px 40px 10px 15px;
+        border: 1px solid #ccc;
+        background-color: white;
+        cursor: pointer;
+        border-radius: 10px;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23333' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 12px;
+      }
+
+      .product-details {
+        margin-top: 20px;
+      }
+
+      .options-section {
+        margin-bottom: 20px;
+      }
+
+      .option-label {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #333;
+      }
+
+      .options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      button {
+        padding: 10px 15px;
+        border: 1px solid #ccc;
+        background-color: white;
+        cursor: pointer;
+        border-radius: 10px;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+      }
+
+      button:hover {
+        background-color: #f5f5f5;
+      }
+
+      button:focus-visible {
+        outline: 2px solid #4c9ffe;
+        outline-offset: 2px;
+      }
+
+      .options button.active {
+        border-color: black;
+        background-color: #000;
+        color: white;
+      }
+
+      .add-to-cart {
+        margin-bottom: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .add-to-cart button {
+        border: 1px solid #000;
+        background-color: #000;
+        color: #fff;
+      }
+
+      .add-to-cart button:hover {
+        background-color: #111;
+      }
+    </style>
+
+    <!-- Vue 3 import map -->
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+        }
+      }
+    </script>
+
+    <script type="module">
+      // Import Metabox API from CDN
+      import {
+        integrateMetabox,
+        SetProduct,
+        SetProductMaterial,
+        SetEnvironment,
+        SetEnvironmentMaterial,
+        GetScreenshot,
+        GetPdf,
+        GetCallToActionInformation,
+        ShowEmbeddedMenu,
+        ShowOverlayInterface,
+        saveImage,
+      } from 'https://cdn.jsdelivr.net/npm/@3dsource/metabox-front-api@latest/+esm';
+      import { createApp } from 'vue';
+
+      /**
+       * Shim class - manages Metabox API communication
+       * Stores API reference and configurator state
+       * Provides methods to send commands and handle events
+       */
+      class Shim {
+        state = null;
+        ecomConfigurator = null;
+        product = null;
+        products = null;
+        environments = null;
+        productSlots = null;
+        environmentSlots = null;
+        productMaterialsIds = null;
+        api = {};
+
+        /**
+         * Called when API is ready - stores reference and sets up listeners
+         */
+        ready(api) {
+          this.api = api;
+          this.addApiEventListeners();
+
+          // Hide default configurator UI since we're providing custom controls
+          this.api.sendCommandToMetabox(new ShowEmbeddedMenu(false));
+          this.api.sendCommandToMetabox(new ShowOverlayInterface(false));
+        }
+
+        /**
+         * Register event listeners for configurator updates
+         */
+        addApiEventListeners() {
+          // Primary event - configurator state updates (products, materials, environment)
+          this.api.addEventListener('configuratorDataUpdated', (data) =>
+            this.updateConfiguratorData(data),
+          );
+
+          // E-commerce data (call-to-action button info)
+          this.api.addEventListener('ecomConfiguratorDataUpdated', (data) => {
+            this.updateEcomConfiguratorData(data);
+          });
+
+          // Screenshot ready - auto-save image
+          this.api.addEventListener('screenshotReady', (data) => {
+            saveImage(data, 'Render.png');
+          });
+        }
+
+        /**
+         * Update local state from configuratorDataUpdated event
+         * This is the source of truth for UI state
+         */
+        updateConfiguratorData(data) {
+          const {
+            productId,
+            configurator,
+            productMaterialsIds,
+            environmentId,
+            environmentMaterialsIds,
+          } = data;
+
+          this.productMaterialsIds = productMaterialsIds;
+
+          // Wait until we have complete data before updating UI
+          if (
+            !productId ||
+            !configurator ||
+            Object.keys(this.productMaterialsIds).length === 0
+          ) {
+            return;
+          }
+
+          this.state = data;
+          this.products =
+            configurator.products?.map((item) => item.product) || [];
+          this.environments =
+            configurator.environments?.map((item) => item.environment) || [];
+          this.product = this.products.find(
+            (product) => product.id === productId,
+          );
+
+          const environment = this.environments.find(
+            (env) => env.id === environmentId,
+          );
+
+          // Filter to only slots with available materials
+          this.productSlots =
+            this.product?.slots.filter(
+              (slot) => slot.enabledMaterials.length > 0,
+            ) || [];
+          this.environmentSlots = environment?.slots.filter(
+            (slot) => slot.enabledMaterials.length > 0,
+          );
+        }
+
+        updateEcomConfiguratorData(data) {
+          this.ecomConfigurator = data;
+        }
+
+        /**
+         * Command methods - send instructions to the configurator
+         */
+        sendProduct(productId) {
+          this.api.sendCommandToMetabox(new SetProduct(productId));
+        }
+
+        sendEnvironment(environmentId) {
+          this.api.sendCommandToMetabox(new SetEnvironment(environmentId));
+        }
+
+        sendProductMaterial(slotId, materialId) {
+          this.api.sendCommandToMetabox(
+            new SetProductMaterial(slotId, materialId),
+          );
+        }
+
+        sendEnvironmentMaterial(slotId, materialId) {
+          this.api.sendCommandToMetabox(
+            new SetEnvironmentMaterial(slotId, materialId),
+          );
+        }
+
+        getRender(size) {
+          this.api.sendCommandToMetabox(new GetScreenshot('image/png', size));
+        }
+
+        getPDF() {
+          this.api.sendCommandToMetabox(new GetPdf());
+        }
+
+        getCtaInformation() {
+          this.api.sendCommandToMetabox(new GetCallToActionInformation());
+        }
+      }
+
+      /**
+       * Vue app setup
+       */
+      createApp({
+        data() {
+          return { shim: new Shim() };
+        },
+        mounted() {
+          // Initialize Metabox configurator
+          // IMPORTANT: Replace 'YOUR-CONFIGURATOR-ID-HERE' with your actual configurator ID
+          integrateMetabox(
+            'YOUR-CONFIGURATOR-ID-HERE',
+            'embed3DSource',
+            (api) => {
+              // API ready callback - only send commands after this fires
+              this.shim.ready(api);
+            },
+            {
+              standalone: true,
+            },
+          );
+        },
+      }).mount('#app');
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <strong>
+        This app requires JavaScript to run. Please enable JavaScript in your
+        browser.
+      </strong>
+    </noscript>
+
+    <div class="container" id="app">
+      <!-- Left Panel: 3D Viewport -->
+      <div class="left-panel">
+        <div id="embed3DSource">
+          <!-- Metabox iframe will be injected here -->
+        </div>
+      </div>
+
+      <!-- Right Panel: Controls -->
+      <div class="right-panel" v-if="!shim.state">
+        <div class="header" role="status" aria-live="polite">
+          <h3>Loading...</h3>
+        </div>
+      </div>
+
+      <div class="right-panel" v-else>
+        <!-- Export Actions -->
+        <div class="add-to-cart">
+          <button type="button" @click="shim.getRender()">
+            Take Render
+          </button>
+          <button type="button" @click="shim.getRender({ x: 1024, y: 1024 })">
+            Take Render 1024×1024
+          </button>
+          <button type="button" @click="shim.getPDF()">
+            Generate PDF
+          </button>
+          <div v-if="shim.ecomConfigurator?.cta?.enabled">
+            <button type="button" @click="shim.getCtaInformation()">
+              {{ shim.ecomConfigurator?.cta?.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Product Title -->
+        <div class="header">
+          <h3>{{ shim.product?.title }}</h3>
+        </div>
+
+        <!-- Product Selector -->
+        <div class="product-selector">
+          <label for="product-select">Select Product:</label>
+          <select
+            @change="shim.sendProduct(shim.state.productId)"
+            id="product-select"
+            v-model="shim.state.productId"
+          >
+            <option
+              :key="product.id"
+              :value="product.id"
+              v-for="product in shim.products"
+            >
+              {{ product.title }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Product Material Slots -->
+        <div class="product-details">
+          <div
+            class="options-section"
+            v-for="slot in shim.productSlots"
+            :key="slot.id"
+          >
+            <p class="option-label">{{ slot.label }}:</p>
+            <div class="options">
+              <button
+                type="button"
+                :key="material.id"
+                :class="{ active: shim.productMaterialsIds?.[shim.state.productId]?.[slot.id] === material.id }"
+                @click="shim.sendProductMaterial(slot.id, material.id)"
+                v-for="material in slot.enabledMaterials"
+              >
+                {{ material.title }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Environment Controls (if environment has material slots) -->
+        <div v-if="shim.environmentSlots">
+          <div class="product-selector">
+            <label for="env-select">Select Environment:</label>
+            <select
+              @change="shim.sendEnvironment(shim.state.environmentId)"
+              id="env-select"
+              v-model="shim.state.environmentId"
+            >
+              <option
+                :key="env.id"
+                :value="env.id"
+                v-for="env in shim.environments"
+              >
+                {{ env.title }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Environment Material Slots -->
+          <div class="product-details">
+            <div
+              class="options-section"
+              v-for="slot in shim.environmentSlots"
+              :key="slot.id"
+            >
+              <p class="option-label">{{ slot.label }}:</p>
+              <div class="options">
+                <button
+                  type="button"
+                  :key="material.id"
+                  :class="{ active: shim.state.environmentMaterialsIds?.[shim.state.environmentId]?.[slot.id] === material.id }"
+                  @click="shim.sendEnvironmentMaterial(slot.id, material.id)"
+                  v-for="material in slot.enabledMaterials"
+                >
+                  {{ material.title }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Metabox Modular Configurator</title>
+    <meta
+      name="description"
+      content="Interactive Metabox modular configurator demo with Vue 3: assemble components, choose materials, environments, and export renders/PDF."
+    />
+
+    <style>
+      /* Critical Layout CSS - DO NOT REMOVE */
+
+      /* Box-sizing reset for predictable dimensions */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      /* Body reset - prevents scrollbars and margins */
+      body {
+        margin: 0;
+        overflow: hidden;
+        height: 100vh;
+        font-family: Arial, sans-serif;
+        background-color: #f9fafb;
+      }
+
+      /* Container with absolute positioning prevents layout shifts */
+      .container {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        overflow: hidden;
+        background-color: white;
+      }
+
+      /* Fixed 50/50 split - no grow/shrink prevents viewport jitter */
+      .left-panel,
+      .right-panel {
+        flex: 0 0 50%;
+      }
+
+      /* Left panel fills vertical space for 3D viewport */
+      .left-panel {
+        height: 100%;
+      }
+
+      /* Right panel scrolls independently of viewport */
+      .right-panel {
+        overflow: auto;
+        padding: 20px;
+      }
+
+      /* Embed container fills left panel completely */
+      #embed3DSource {
+        width: 100%;
+        height: 100%;
+        background-color: #e0e0e0; /* Loading placeholder */
+      }
+
+      /* UI Styling */
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .header h3 {
+        margin: 0;
+        font-size: 24px;
+        color: #333;
+      }
+
+      .component-selector {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f5f5f5;
+        border-radius: 10px;
+      }
+
+      .component-selector h4 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+        color: #333;
+      }
+
+      .component-selector label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #333;
+      }
+
+      select {
+        width: 100%;
+        padding: 10px 40px 10px 15px;
+        border: 1px solid #ccc;
+        background-color: white;
+        cursor: pointer;
+        border-radius: 10px;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23333' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 12px;
+      }
+
+      .component-tree {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #fafafa;
+        border-radius: 10px;
+      }
+
+      .component-tree h4 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+        color: #333;
+      }
+
+      .component-item {
+        padding: 8px;
+        margin-bottom: 8px;
+        background-color: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
+      }
+
+      .component-item.root {
+        border-color: #4c9ffe;
+        border-width: 2px;
+      }
+
+      .component-name {
+        font-weight: bold;
+        color: #333;
+      }
+
+      .component-type {
+        font-size: 12px;
+        color: #666;
+        margin-left: 8px;
+      }
+
+      .material-controls {
+        margin-top: 20px;
+      }
+
+      .material-section {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #f9f9f9;
+        border-radius: 10px;
+      }
+
+      .material-section h5 {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+        color: #333;
+      }
+
+      .options-section {
+        margin-bottom: 15px;
+      }
+
+      .option-label {
+        font-weight: bold;
+        margin-bottom: 10px;
+        color: #333;
+        font-size: 13px;
+      }
+
+      .options {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      button {
+        padding: 10px 15px;
+        border: 1px solid #ccc;
+        background-color: white;
+        cursor: pointer;
+        border-radius: 10px;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+      }
+
+      button:hover {
+        background-color: #f5f5f5;
+      }
+
+      button:focus-visible {
+        outline: 2px solid #4c9ffe;
+        outline-offset: 2px;
+      }
+
+      .options button.active {
+        border-color: black;
+        background-color: #000;
+        color: white;
+      }
+
+      .add-to-cart {
+        margin-bottom: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .add-to-cart button {
+        border: 1px solid #000;
+        background-color: #000;
+        color: #fff;
+      }
+
+      .add-to-cart button:hover {
+        background-color: #111;
+      }
+
+      .environment-selector {
+        margin-bottom: 20px;
+      }
+
+      .environment-selector label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #333;
+      }
+    </style>
+
+    <!-- Vue 3 import map -->
+    <script type="importmap">
+      {
+        "imports": {
+          "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+        }
+      }
+    </script>
+
+    <script type="module">
+      // Import Modular Metabox API from CDN
+      import {
+        integrateMetabox,
+        SetComponent,
+        SetComponentMaterial,
+        SetEnvironment,
+        GetScreenshot,
+        GetPdf,
+        ShowEmbeddedMenu,
+        ShowOverlayInterface,
+        saveImage,
+      } from 'https://cdn.jsdelivr.net/npm/@3dsource/metabox-modular-configurator-api@latest/+esm';
+      import { createApp } from 'vue';
+
+      /**
+       * Shim class - manages Modular Metabox API communication
+       * Stores API reference and configurator state
+       * Provides methods to send commands and handle events
+       */
+      class Shim {
+        state = null;
+        api = {};
+        configurationTree = [];
+        componentsByType = {};
+        componentTypes = [];
+        environments = [];
+
+        /**
+         * Called when API is ready - stores reference and sets up listeners
+         */
+        ready(api) {
+          this.api = api;
+          this.addApiEventListeners();
+
+          // Hide default configurator UI since we're providing custom controls
+          this.api.sendCommandToMetabox(new ShowEmbeddedMenu(false));
+          this.api.sendCommandToMetabox(new ShowOverlayInterface(false));
+        }
+
+        /**
+         * Register event listeners for configurator updates
+         */
+        addApiEventListeners() {
+          // Primary event - modular configurator state updates
+          this.api.addEventListener('configuratorDataUpdated', (data) =>
+            this.updateConfiguratorData(data),
+          );
+
+          // Screenshot ready - auto-save image
+          this.api.addEventListener('screenshotReady', (data) => {
+            saveImage(data, 'Render.png');
+          });
+        }
+
+        /**
+         * Update local state from configuratorDataUpdated event
+         * This is the source of truth for UI state
+         * Note: ModularConfiguratorEnvelope has different structure than basic
+         */
+        updateConfiguratorData(data) {
+          const { configurationTree, configurator, componentsByComponentType } = data;
+
+          if (!configurationTree || !configurator) {
+            return;
+          }
+
+          this.state = data;
+          this.configurationTree = configurationTree;
+          this.componentsByType = componentsByComponentType || {};
+          this.componentTypes = configurator.componentTypes || [];
+          this.environments =
+            configurator.environments?.map((item) => item.environment) || [];
+        }
+
+        /**
+         * Command methods - send instructions to the configurator
+         */
+
+        /**
+         * Set a component in the configuration
+         * @param {string} componentId - The component ID to add
+         * @param {string} typeId - The component type ID
+         * @param {boolean} isRoot - Whether this is the root component
+         */
+        setComponent(componentId, typeId, isRoot = false) {
+          this.api.sendCommandToMetabox(
+            new SetComponent(componentId, typeId, isRoot),
+          );
+        }
+
+        /**
+         * Set a material for a specific component's slot
+         * @param {string} componentId - The component ID
+         * @param {string} slotId - The material slot ID
+         * @param {string} materialId - The material ID to apply
+         */
+        setComponentMaterial(componentId, slotId, materialId) {
+          this.api.sendCommandToMetabox(
+            new SetComponentMaterial(componentId, slotId, materialId),
+          );
+        }
+
+        setEnvironment(environmentId) {
+          this.api.sendCommandToMetabox(new SetEnvironment(environmentId));
+        }
+
+        getRender(size) {
+          this.api.sendCommandToMetabox(new GetScreenshot('image/png', size));
+        }
+
+        getPDF() {
+          this.api.sendCommandToMetabox(new GetPdf());
+        }
+
+        /**
+         * Helper to get component by ID from configuration tree
+         */
+        getComponentById(componentId) {
+          return this.configurationTree.find((c) => c.component.id === componentId);
+        }
+
+        /**
+         * Helper to get root component
+         */
+        getRootComponent() {
+          return this.configurationTree.find((c) => c.isRoot);
+        }
+      }
+
+      /**
+       * Vue app setup
+       */
+      createApp({
+        data() {
+          return {
+            shim: new Shim(),
+            selectedType: null,
+          };
+        },
+        mounted() {
+          // Initialize Modular Metabox configurator
+          // IMPORTANT: Replace 'YOUR-CONFIGURATOR-ID-HERE' with your actual configurator ID
+          integrateMetabox(
+            'YOUR-CONFIGURATOR-ID-HERE',
+            'embed3DSource',
+            (api) => {
+              // API ready callback - only send commands after this fires
+              this.shim.ready(api);
+
+              // CRITICAL: For modular configurators, you must set a root component first
+              // Example (uncomment and replace with your root component ID and type):
+              // this.shim.setComponent('root-component-id', 'base-type-id', true);
+              // this.shim.setEnvironment('environment-id');
+            },
+            {
+              standalone: true,
+            },
+          );
+        },
+      }).mount('#app');
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <strong>
+        This app requires JavaScript to run. Please enable JavaScript in your
+        browser.
+      </strong>
+    </noscript>
+
+    <div class="container" id="app">
+      <!-- Left Panel: 3D Viewport -->
+      <div class="left-panel">
+        <div id="embed3DSource">
+          <!-- Metabox iframe will be injected here -->
+        </div>
+      </div>
+
+      <!-- Right Panel: Controls -->
+      <div class="right-panel" v-if="!shim.state">
+        <div class="header" role="status" aria-live="polite">
+          <h3>Loading...</h3>
+        </div>
+      </div>
+
+      <div class="right-panel" v-else>
+        <!-- Export Actions -->
+        <div class="add-to-cart">
+          <button type="button" @click="shim.getRender()">
+            Take Render
+          </button>
+          <button type="button" @click="shim.getRender({ x: 1024, y: 1024 })">
+            Take Render 1024×1024
+          </button>
+          <button type="button" @click="shim.getPDF()">
+            Generate PDF
+          </button>
+        </div>
+
+        <!-- Current Configuration Tree -->
+        <div class="component-tree" v-if="shim.configurationTree.length > 0">
+          <h4>Current Configuration</h4>
+          <div
+            v-for="item in shim.configurationTree"
+            :key="item.component.id"
+            :class="['component-item', { root: item.isRoot }]"
+          >
+            <span class="component-name">{{ item.component.title }}</span>
+            <span class="component-type">({{ item.componentType.title }})</span>
+          </div>
+        </div>
+
+        <!-- Component Type Selectors -->
+        <div
+          v-for="componentType in shim.componentTypes"
+          :key="componentType.id"
+          class="component-selector"
+        >
+          <h4>{{ componentType.title }}</h4>
+          <label :for="'component-' + componentType.id">
+            Choose {{ componentType.title }}:
+          </label>
+          <select
+            :id="'component-' + componentType.id"
+            @change="(e) => shim.setComponent(e.target.value, componentType.id, componentType.isRootType)"
+          >
+            <option value="">-- Select --</option>
+            <option
+              v-for="component in shim.componentsByType[componentType.id] || []"
+              :key="component.id"
+              :value="component.id"
+            >
+              {{ component.title }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Material Controls for Each Component -->
+        <div class="material-controls" v-if="shim.configurationTree.length > 0">
+          <h4>Materials</h4>
+          <div
+            v-for="item in shim.configurationTree"
+            :key="'materials-' + item.component.id"
+            class="material-section"
+          >
+            <h5>{{ item.component.title }}</h5>
+            <div
+              v-for="slot in item.component.slots.filter(s => s.enabledMaterials.length > 0)"
+              :key="slot.id"
+              class="options-section"
+            >
+              <p class="option-label">{{ slot.label }}:</p>
+              <div class="options">
+                <button
+                  type="button"
+                  v-for="material in slot.enabledMaterials"
+                  :key="material.id"
+                  :class="{ active: item.materialIds?.[slot.id] === material.id }"
+                  @click="shim.setComponentMaterial(item.component.id, slot.id, material.id)"
+                >
+                  {{ material.title }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Environment Selector -->
+        <div class="environment-selector" v-if="shim.environments.length > 0">
+          <label for="env-select">Select Environment:</label>
+          <select
+            @change="shim.setEnvironment(shim.state.environmentId)"
+            id="env-select"
+            v-model="shim.state.environmentId"
+          >
+            <option
+              :key="env.id"
+              :value="env.id"
+              v-for="env in shim.environments"
+            >
+              {{ env.title }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
