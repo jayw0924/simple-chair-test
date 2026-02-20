@@ -8,56 +8,66 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; font-family: system-ui, sans-serif; }
 
-    #embed3DSource {
+    .container {
       position: absolute;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Left panel — 3D viewport */
+    .left-panel {
+      flex: 0 0 75%;
+      height: 100%;
+      position: relative;
+    }
+
+    #embed3DSource {
       width: 100%;
       height: 100%;
     }
 
-    /* Product selector strip along the bottom */
-    #product-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      background: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      overflow-x: auto;
+    /* Right panel — product grid */
+    .right-panel {
+      flex: 0 0 25%;
+      height: 100%;
+      overflow-y: auto;
+      background: #111;
+      padding: 12px;
+    }
+
+    #products {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
       opacity: 0;
       transition: opacity 0.3s;
     }
-    #product-bar.ready { opacity: 1; }
+    #products.ready { opacity: 1; }
 
     .product-card {
-      flex: 0 0 auto;
-      width: 80px;
       cursor: pointer;
       border: 2px solid transparent;
       border-radius: 8px;
       overflow: hidden;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
       transition: border-color 0.2s, transform 0.15s;
     }
-    .product-card:hover { transform: scale(1.05); }
+    .product-card:hover { transform: scale(1.03); }
     .product-card.active { border-color: #2563eb; }
 
     .product-card img {
       width: 100%;
-      height: 60px;
+      aspect-ratio: 1;
       object-fit: cover;
       display: block;
       background: #222;
     }
 
     .product-card .label {
-      padding: 4px 6px;
-      font-size: 10px;
+      padding: 6px;
+      font-size: 11px;
       font-weight: 600;
       color: #fff;
       text-align: center;
@@ -69,18 +79,18 @@
     /* Fallback when no thumbnail */
     .product-card .no-thumb {
       width: 100%;
-      height: 60px;
+      aspect-ratio: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #333;
-      color: #888;
-      font-size: 24px;
+      background: #222;
+      color: #555;
+      font-size: 28px;
     }
 
-    /* Dimension toggle button — top right corner */
+    /* Dimension toggle button — top right of viewport */
     #dimension-btn {
-      position: fixed;
+      position: absolute;
       top: 16px;
       right: 16px;
       z-index: 1000;
@@ -103,12 +113,14 @@
   </style>
 </head>
 <body>
-  <div id="embed3DSource"></div>
-
-  <button id="dimension-btn">Show Dimensions</button>
-
-  <div id="product-bar">
-    <div id="products"></div>
+  <div class="container">
+    <div class="left-panel">
+      <div id="embed3DSource"></div>
+      <button id="dimension-btn">Show Dimensions</button>
+    </div>
+    <div class="right-panel">
+      <div id="products"></div>
+    </div>
   </div>
 
   <script type="module">
@@ -125,12 +137,10 @@
     let dimensionsVisible = false;
     let currentProductId = null;
 
-    const bar = document.getElementById('product-bar');
     const productsContainer = document.getElementById('products');
     const dimBtn = document.getElementById('dimension-btn');
 
     function getThumbnailUrl(product) {
-      // thumbnailList sorted by size — use 300x300 if available, else first
       const list = product.thumbnailList;
       if (!list?.length) return null;
       const thumb = list.find((t) => t.width === 300) || list[0];
@@ -138,12 +148,7 @@
     }
 
     function renderProducts(products, activeProductId) {
-      // Log full product data so we can inspect thumbnail structure
-      console.log('Products data:', JSON.stringify(products[0], null, 2));
-
       productsContainer.innerHTML = '';
-      productsContainer.style.display = 'flex';
-      productsContainer.style.gap = '12px';
 
       products.forEach((product) => {
         const card = document.createElement('div');
@@ -179,7 +184,7 @@
         productsContainer.appendChild(card);
       });
 
-      bar.classList.add('ready');
+      productsContainer.classList.add('ready');
     }
 
     integrateMetabox(
